@@ -1,0 +1,147 @@
+﻿	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+		<PropertyGroup>
+			<ProjectGuid>{8EDC1760-DA22-4549-9EAF-710500E0E8C0}</ProjectGuid>
+			<MainSource>SSniffer.dpr</MainSource>
+			<Base>True</Base>
+			<Config Condition="'$(Config)'==''">Debug</Config>
+			<Platform>Win32</Platform>
+			<AppType>Application</AppType>
+			<FrameworkType>VCL</FrameworkType>
+			<DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
+			<ProjectVersion>12.3</ProjectVersion>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
+			<Base>true</Base>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Config)'=='Release' or '$(Cfg_1)'!=''">
+			<Cfg_1>true</Cfg_1>
+			<CfgParent>Base</CfgParent>
+			<Base>true</Base>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Config)'=='Debug' or '$(Cfg_2)'!=''">
+			<Cfg_2>true</Cfg_2>
+			<CfgParent>Base</CfgParent>
+			<Base>true</Base>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Base)'!=''">
+			<DCC_ImageBase>00400000</DCC_ImageBase>
+			<DCC_UsePackage>vcl;rtl;visualclx;vcldb;visualdbclx;dbrtl;vclx;vclactnband;vclshlctrls;vclie;xmlrtl;inetdbbde;inet;inetdbxpress;webdsnap;dsnap;soaprtl;websnap;adortl;bdertl;vcldbx;dbexpress;dsnapcon;dbxcds;ibxpress;teeui;teedb;tee;dss;VclSmp;dclOfficeXP;Rave50CLX;Rave50VCL;IntrawebDB_50_70;Intraweb_50_70;IndyCore70;IndySystem70;IndyProtocols70;OverbyteIcsD7Run</DCC_UsePackage>
+			<DCC_SymbolReferenceInfo>1</DCC_SymbolReferenceInfo>
+			<DCC_UnitAlias>WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;WinTypes=Windows;WinProcs=Windows;$(DCC_UnitAlias)</DCC_UnitAlias>
+			<DCC_ExeOutput>bin\</DCC_ExeOutput>
+			<DCC_UnitSearchPath>units\;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+			<DCC_K>false</DCC_K>
+			<DCC_N>true</DCC_N>
+			<DCC_S>false</DCC_S>
+			<DCC_E>false</DCC_E>
+			<DCC_F>false</DCC_F>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Cfg_1)'!=''">
+			<DCC_ExeOutput>bin\Release</DCC_ExeOutput>
+			<DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
+			<DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
+			<DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
+			<DCC_DebugInformation>false</DCC_DebugInformation>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Cfg_2)'!=''">
+			<DCC_ExeOutput>bin\Debug</DCC_ExeOutput>
+			<ILINK_FullDebugInfo>true</ILINK_FullDebugInfo>
+			<BCC_SourceDebuggingOn>true</BCC_SourceDebuggingOn>
+			<BCC_DebugLineNumbers>true</BCC_DebugLineNumbers>
+			<DCC_DebugInfoInExe>true</DCC_DebugInfoInExe>
+			<DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
+			<DCC_Optimize>false</DCC_Optimize>
+			<DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
+		</PropertyGroup>
+		<ItemGroup>
+			<DelphiCompile Include="SSniffer.dpr">
+				<MainSource>MainSource</MainSource>
+			</DelphiCompile>
+			<DCCReference Include="units\SSUtils.pas"/>
+			<DCCReference Include="units\SSBox.pas"/>
+			<DCCReference Include="units\SClasses.pas"/>
+			<DCCReference Include="units\Magenta\MagClasses.pas"/>
+			<DCCReference Include="units\Magenta\MagentaBpf.pas"/>
+			<DCCReference Include="units\Magenta\MagentaMonpcap.pas"/>
+			<DCCReference Include="units\Magenta\MagentaNdis_def.pas"/>
+			<DCCReference Include="units\Magenta\MagentaPacket32.pas"/>
+			<DCCReference Include="units\Magenta\MagentaPackhdrs.pas"/>
+			<DCCReference Include="units\Magenta\MagentaPcap.pas"/>
+			<DCCReference Include="units\Magenta\magsubs1.pas"/>
+			<DCCReference Include="units\Dissectors\ICQparser.pas"/>
+			<DCCReference Include="units\Dissectors\MRAParcer.pas"/>
+			<DCCReference Include="Forms\MainUnit.pas">
+				<Form>frmMain</Form>
+			</DCCReference>
+			<DCCReference Include="Forms\AdaptorSelector.pas">
+				<Form>frmAdapterSelect</Form>
+			</DCCReference>
+			<None Include="doc\Алгоритм получения полных пакетов.txt"/>
+			<BuildConfiguration Include="Debug">
+				<Key>Cfg_2</Key>
+				<CfgParent>Base</CfgParent>
+			</BuildConfiguration>
+			<BuildConfiguration Include="Base">
+				<Key>Base</Key>
+			</BuildConfiguration>
+			<BuildConfiguration Include="Release">
+				<Key>Cfg_1</Key>
+				<CfgParent>Base</CfgParent>
+			</BuildConfiguration>
+		</ItemGroup>
+		<Import Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')" Project="$(BDS)\Bin\CodeGear.Delphi.Targets"/>
+		<Import Condition="Exists('$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj')" Project="$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj"/>
+		<ProjectExtensions>
+			<Borland.Personality>Delphi.Personality.12</Borland.Personality>
+			<Borland.ProjectType>VCLApplication</Borland.ProjectType>
+			<BorlandProject>
+				<Delphi.Personality>
+					<Source>
+						<Source Name="MainSource">SSniffer.dpr</Source>
+					</Source>
+					<VersionInfo>
+						<VersionInfo Name="IncludeVerInfo">True</VersionInfo>
+						<VersionInfo Name="AutoIncBuild">True</VersionInfo>
+						<VersionInfo Name="MajorVer">0</VersionInfo>
+						<VersionInfo Name="MinorVer">0</VersionInfo>
+						<VersionInfo Name="Release">3</VersionInfo>
+						<VersionInfo Name="Build">40</VersionInfo>
+						<VersionInfo Name="Debug">True</VersionInfo>
+						<VersionInfo Name="PreRelease">False</VersionInfo>
+						<VersionInfo Name="Special">False</VersionInfo>
+						<VersionInfo Name="Private">False</VersionInfo>
+						<VersionInfo Name="DLL">False</VersionInfo>
+						<VersionInfo Name="Locale">1049</VersionInfo>
+						<VersionInfo Name="CodePage">1251</VersionInfo>
+					</VersionInfo>
+					<VersionInfoKeys>
+						<VersionInfoKeys Name="CompanyName">1</VersionInfoKeys>
+						<VersionInfoKeys Name="FileDescription">2</VersionInfoKeys>
+						<VersionInfoKeys Name="FileVersion">0.0.3.40</VersionInfoKeys>
+						<VersionInfoKeys Name="InternalName">3</VersionInfoKeys>
+						<VersionInfoKeys Name="LegalCopyright">4</VersionInfoKeys>
+						<VersionInfoKeys Name="LegalTrademarks">5</VersionInfoKeys>
+						<VersionInfoKeys Name="OriginalFilename">6</VersionInfoKeys>
+						<VersionInfoKeys Name="ProductName">7</VersionInfoKeys>
+						<VersionInfoKeys Name="ProductVersion">8</VersionInfoKeys>
+						<VersionInfoKeys Name="Comments">9</VersionInfoKeys>
+						<VersionInfoKeys Name="LastCompiledTime">23.08.2011 12:28:58</VersionInfoKeys>
+					</VersionInfoKeys>
+					<Parameters>
+						<Parameters Name="RunParams">-s -l</Parameters>
+					</Parameters>
+					<Excluded_Packages>
+						<Excluded_Packages Name="$(BDSBIN)\bcboffice2k150.bpl">Embarcadero C++Builder Office 2000 Servers Package</Excluded_Packages>
+						<Excluded_Packages Name="$(BDSBIN)\bcbofficexp150.bpl">Embarcadero C++Builder Office XP Servers Package</Excluded_Packages>
+						<Excluded_Packages Name="$(BDSBIN)\dcloffice2k150.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
+						<Excluded_Packages Name="$(BDSBIN)\dclofficexp150.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
+					</Excluded_Packages>
+				</Delphi.Personality>
+				<Platforms>
+					<Platform value="Win32">True</Platform>
+				</Platforms>
+				<ModelSupport>False</ModelSupport>
+			</BorlandProject>
+			<ProjectFileVersion>12</ProjectFileVersion>
+		</ProjectExtensions>
+	</Project>
