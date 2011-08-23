@@ -38,6 +38,10 @@ uses
   AdaptorSelector in 'Forms\AdaptorSelector.pas' {frmAdapterSelect};
 
 begin
+  (*
+    Ётот код редкостное гавно.
+    ѕоэтому € всегда готов выслушать предложени€ по адресу: osmenog@gmail.com
+  *)
   Application.Initialize;
   Application.MainFormOnTaskbar:= True;
   {

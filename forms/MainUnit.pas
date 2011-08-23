@@ -91,7 +91,7 @@ begin
     Exit;
   end;
 
-  //Инициалия
+  //Инициализация
   MonStarted:= false; // Состояние монитора - отключен
   MonitorPcap := TMonitorPcap.Create(self); // Создаем "монитор"
   MonitorPcap.onPacketEvent := PacketEvent; // Задаем обработчик событий
