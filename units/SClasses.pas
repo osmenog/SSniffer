@@ -1,3 +1,4 @@
+{ TODO : Для TSettings Перенести FileName в поле FFilename }
 unit SClasses;
 
 interface
@@ -29,8 +30,8 @@ type
       property CMD_ShowWindow:Boolean      read FCMD_ShowWindow;
       property CMD_SelectInterface:Boolean read FCMD_SelectInterface;
 
-      property InterfaceName:String read FInterfaceName;
-      property InterfaceDesc:String read FInterfaceDesc;
+      property InterfaceName:String read FInterfaceName write FInterfaceName;
+      property InterfaceDesc:String read FInterfaceDesc write FInterfaceDesc;
   end;
   TDebugLog = class
     private

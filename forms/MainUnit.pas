@@ -1,3 +1,13 @@
+{ TODO : Удалить ~MagClasses.pas и ~MagentaMonsock.pas из проекта }
+{ DONE : Произвести отчистку кода }
+{ DONE : Добавить параметры коммандной строки:
+  (-i)nterface [<Имя адаптера>] - Выбор сетевого адаптера.
+    Если вызов происходит без параметра, то открываем диалог.
+  (-v)ersion - Вывод версии продукта. И мой копирайт :)
+  (-r)untime log - Создание лога для отладки
+  (-c)rypto - Использование шифрования в файле основного лога.}
+{ DONE : Добавить в github }
+
 unit MainUnit;
 
 interface
@@ -51,7 +61,7 @@ var
   VKpckCount : Integer;
 
 implementation
-
+uses AdaptorSelector;
 {$R *.dfm}
 
 procedure TfrmMain.FormCreate(Sender: TObject);
@@ -195,20 +205,38 @@ end;
 procedure TfrmMain.Start;
 var
   i: integer;
+  PathToExe:String;
   AdapterIPList: TStringList;
   AdapterMaskList: TStringList;
   AdapterBcastList: TStringList;
 begin
-    // Задаем адаптер, который будем снифать
-    MonitorPcap.MonAdapter:=AnsiString(FSettings.InterfaceName);
+    //Проверяем выбран ли адаптер
+    if FSettings.InterfaceName='0' then
+    begin
+      if frmAdapterSelect.ShowModal = mrCancel then
+      begin
+        Application.Terminate;
+        Exit;
+      end;
 
+      //Сохраняем настройки
+      FSettings.InterfaceName:=frmAdapterSelect.SelAdapterName;
+      FSettings.InterfaceDesc:=frmAdapterSelect.SelAdapterDesc;
+      PathToExe:=ExtractFileDir(ParamStr(0));
+      FSettings.SaveToINI(PathToExe+'\'+SETTINGS_FILENAME);
+
+      FreeAndNil(frmAdapterSelect);
+    end;
+
+     // Задаем адаптер, который будем снифать
+     MonitorPcap.MonAdapter:=AnsiString(FSettings.InterfaceName);
     // Создаем экземпляры списков
     AdapterIPList:= TStringList.Create;
     AdapterMaskList:= TStringList.Create;
     AdapterBcastList:= TStringList.Create;
 
     // Определяем IP
-    i := MonitorPcap.GetIPAddresses(MonitorPcap.MonAdapter, AdapterIPList,AdapterMaskList, AdapterBcastList);
+    i:=MonitorPcap.GetIPAddresses(MonitorPcap.MonAdapter, AdapterIPList,AdapterMaskList, AdapterBcastList);
 
     if i > 0 then
     begin

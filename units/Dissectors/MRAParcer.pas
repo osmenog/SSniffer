@@ -60,6 +60,7 @@ var
   tmp: String;
   msg_id:DWORD;
 begin
+{ TODO : Добавить обработку RTF текста вместо Plain Message }
 	Log:=TLogLine.Create;
   ofst:=1;
   Header:= PMRAHdr(@PacketInfo.DataBuf[1]);
