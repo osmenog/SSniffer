@@ -1,3 +1,6 @@
+{
+	Этот файл скоро будет ненужен :)
+}
 unit SSUtils;
 
 interface
