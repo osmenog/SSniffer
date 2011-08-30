@@ -32,12 +32,14 @@ type
     lblMRACounter: TLabel;
     lbAIMCounter: TLabel;
     lbCounter: TLabel;
+    Memo1: TMemo;
     procedure FormCreate(Sender: TObject);
     procedure tmrCounterTimer(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
   private
-    FSettings: TSettings;
-    FLog:      TDebugLog;
+    {FSettings: TSettings;
+    FLog:      TDebugLog;}
+    SenderThread: TSenderThread;
   public
     procedure PacketEvent(Sender: TObject; PacketInfo: TPacketInfo);
     procedure Start;
@@ -72,22 +74,26 @@ var
 begin
   //Выполняем загрузку и инициализацию настроек
   PathToExe:=ExtractFileDir(ParamStr(0));
-  FSettings:=TSettings.Create;
-  with FSettings do
+  GlobalSettings:=TSettings.Create;
+  with GlobalSettings do
   begin
     //CheckDublicate;
     ReadCMDParams;
-    LoadFromINI(PathToExe+'\'+SETTINGS_FILENAME);
-    SaveToINI(PathToExe+'\'+SETTINGS_FILENAME);
+    LoadFromINI;
+    SaveToINI;
   end;
 
   //Выполняем инициализацию Лога
-  FLog:=TDebugLog.Create;
-  FLog.ApplySettings(FSettings);
-  FLog.Add (#13#10+'**********',False);
+  GlobalLogger:=TDebugLog.Create;
 
+  GlobalLogger.Add (#13#10+'**********',False);
+
+  Memo1.Lines.Assign(GlobalLogger.List);
+  GlobalLogger.List.Add('test');
+  Memo1.Update;
+  Memo1.Lines.Assign(GlobalLogger.List);
   //Если присутствует флаг отображения окна, то делаем гл. форму видимой.
-  if FSettings.CMD_ShowWindow=False then
+  if GlobalSettings.CMD_ShowWindow=False then
     Application.ShowMainForm:=False
   else
     Application.ShowMainForm:=True;
@@ -95,8 +101,8 @@ begin
   // Проверяем, загружен ли драйвер PCAP
   if not LoadPacketDll then
   begin
-    FLog.Add('Error: packet.dll is not loaded');
-    if FSettings.CMD_ShowWindow then ShowMessage('packed.dll not found');
+    GlobalLogger.Add('Error: packet.dll is not loaded');
+    if GlobalSettings.CMD_ShowWindow then ShowMessage('packed.dll not found');
     Application.Terminate;
     Exit;
   end;
@@ -106,7 +112,7 @@ begin
   MonitorPcap := TMonitorPcap.Create(self); // Создаем "монитор"
   MonitorPcap.onPacketEvent := PacketEvent; // Задаем обработчик событий
 
-  FLog.Add('WinPCAP loaded. Version: ' + Pcap_GetPacketVersion);
+  GlobalLogger.Add('WinPCAP loaded. Version: ' + Pcap_GetPacketVersion);
 end;
 procedure TfrmMain.FormDestroy(Sender: TObject);
 begin
@@ -116,8 +122,9 @@ begin
     MonitorPCAP.Free;
   end;
 
-  FLog.Add('Exit');
-  FLog.Free;
+  GlobalLogger.Add('Exit');
+  GlobalLogger.Free;
+  GlobalSettings.Free;
   Application.Terminate;
 end;
 procedure TfrmMain.PacketEvent(Sender: TObject; PacketInfo: TPacketInfo);
@@ -193,12 +200,12 @@ begin
     end;
 
     //Проверка на VK сигнатуру "HTTP" = 48 54 64 50h
-    if (PacketInfo.PortSrc=80) or (PacketInfo.PortDest=80) then
+    {if (PacketInfo.PortSrc=80) or (PacketInfo.PortDest=80) then
     begin
 			//mmo1.Lines.Add(LogDataWrapper(PacketInfo));
       //ConvertHTTP (@PacketInfo.DataBuf);
       Proc80(PacketInfo);
-    end;
+    end;}
   end;
 
 end;
@@ -211,7 +218,7 @@ var
   AdapterBcastList: TStringList;
 begin
     //Проверяем выбран ли адаптер
-    if FSettings.InterfaceName='0' then
+    if (GlobalSettings.InterfaceName='0') or (GlobalSettings.CMD_SelectInterface=True) then
     begin
       if frmAdapterSelect.ShowModal = mrCancel then
       begin
@@ -220,16 +227,16 @@ begin
       end;
 
       //Сохраняем настройки
-      FSettings.InterfaceName:=frmAdapterSelect.SelAdapterName;
-      FSettings.InterfaceDesc:=frmAdapterSelect.SelAdapterDesc;
+      GlobalSettings.InterfaceName:=frmAdapterSelect.SelAdapterName;
+      GlobalSettings.InterfaceDesc:=frmAdapterSelect.SelAdapterDesc;
       PathToExe:=ExtractFileDir(ParamStr(0));
-      FSettings.SaveToINI(PathToExe+'\'+SETTINGS_FILENAME);
+      GlobalSettings.SaveToINI;
 
       FreeAndNil(frmAdapterSelect);
     end;
 
      // Задаем адаптер, который будем снифать
-     MonitorPcap.MonAdapter:=AnsiString(FSettings.InterfaceName);
+     MonitorPcap.MonAdapter:=AnsiString(GlobalSettings.InterfaceName);
     // Создаем экземпляры списков
     AdapterIPList:= TStringList.Create;
     AdapterMaskList:= TStringList.Create;
@@ -257,18 +264,23 @@ begin
     if NOT MonitorPcap.Connected then
     begin
       // Если возникла какаято ошибка, то выводим в лог
-      FLog.Add('Error:'+MonitorPcap.LastError);
+      GlobalLogger.Add('Error:'+MonitorPcap.LastError);
       Application.Terminate;
     end;
 
     // Выводим в лог
-    FLog.Add('Capture Started - '+FSettings.InterfaceDesc+' on '+MonitorPcap.Addr);
+    GlobalLogger.Add('Capture Started - '+GlobalSettings.InterfaceDesc+' on '+MonitorPcap.Addr);
 
     // Если все прошло успешно, то монитор - активен.
     MonStarted:= true;
 
     // Стартуем таймер
     tmrCounter.Enabled := true;
+
+    //Запускаем поток отправки писем
+    SenderThread:=TSenderThread.Create(mmo1);
+    SenderThread.FreeOnTerminate:=True;
+    SenderThread.Resume;
 end;
 procedure TfrmMain.tmrCounterTimer(Sender: TObject);
 begin

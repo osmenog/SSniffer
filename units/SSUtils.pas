@@ -3,7 +3,7 @@ unit SSUtils;
 interface
 
 uses
-  Windows, Dialogs, winsock, classes, SysUtils,MagentaPackHdrs,MagentaMonpcap,Registry;
+  Windows, Dialogs, winsock, classes, SysUtils,MagentaPackHdrs,MagentaMonpcap,Registry,SClasses;
 
 type
 	{TLogger = class (TObject)
@@ -136,11 +136,11 @@ TSettings = record
 	itrfc: string;
 end;
 
-const
-	OPT_DEBUG = 1; // Режим отладки
-  OPTION_TEXT_LOG_FILENAME = 'debugger.dll'; //Имя Файла
-  OPTION_RUNTIME_LOG_FILENAME = 'runtime.log';
-  OPTION_CRYPT = True; //Шифровать лог
+//const
+	//OPT_DEBUG = 1; // Режим отладки
+  //OPTION_TEXT_LOG_FILENAME = 'debugger.dll'; //Имя Файла
+  //OPTION_RUNTIME_LOG_FILENAME = 'runtime.log';
+  //OPTION_CRYPT = True; //Шифровать лог
 
 var
   OPTION_INTERFACE: String;
@@ -180,7 +180,7 @@ var
   i:Integer;
 begin
   {$I-}
-	AssignFile(F,OPTION_TEXT_LOG_FILENAME);
+	AssignFile(F,MESSAGE_LOG_FILENAME);
   Append(F);
   if IOResult<>0 then Rewrite(F);
 
@@ -269,7 +269,7 @@ var
   F:TextFile;
   FullPath:string;
 begin
-  FullPath:=OPTION_RUNTIME_LOG_FILENAME;
+  FullPath:=DEBUG_LOG_FILENAME;
   AssignFile(F,FullPath);
   try
 		if not FileExists(FullPath) then Rewrite(F) else Append(F);

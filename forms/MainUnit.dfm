@@ -99,6 +99,15 @@ object frmMain: TfrmMain
       Caption = '0'
     end
   end
+  object Memo1: TMemo
+    Left = 8
+    Top = 128
+    Width = 380
+    Height = 118
+    Lines.Strings = (
+      'Memo1')
+    TabOrder = 2
+  end
   object tmrCounter: TTimer
     Enabled = False
     OnTimer = tmrCounterTimer
