@@ -99,7 +99,7 @@ object frmMain: TfrmMain
       Caption = '0'
     end
   end
-  object Memo1: TMemo
+  object mmoLogger: TMemo
     Left = 8
     Top = 128
     Width = 380
@@ -107,6 +107,15 @@ object frmMain: TfrmMain
     Lines.Strings = (
       'Memo1')
     TabOrder = 2
+  end
+  object Button1: TButton
+    Left = 159
+    Top = 65
+    Width = 75
+    Height = 25
+    Caption = 'Button1'
+    TabOrder = 3
+    OnClick = Button1Click
   end
   object tmrCounter: TTimer
     Enabled = False

@@ -442,6 +442,7 @@ begin
 
   // Start Snoop Read Thread
     FPcapThread := TPcapThread.Create (true) ;
+    FPcapThread.NameThreadForDebugging('PCAP thread');
     FPcapThread.FMonitorPcap := Self ;
     FPcapThread.OnTerminate := ThreadTerminate ;
     FPcapThread.FreeOnTerminate := false;

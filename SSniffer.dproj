@@ -106,7 +106,7 @@
 						<VersionInfo Name="MajorVer">0</VersionInfo>
 						<VersionInfo Name="MinorVer">0</VersionInfo>
 						<VersionInfo Name="Release">3</VersionInfo>
-						<VersionInfo Name="Build">83</VersionInfo>
+						<VersionInfo Name="Build">103</VersionInfo>
 						<VersionInfo Name="Debug">True</VersionInfo>
 						<VersionInfo Name="PreRelease">False</VersionInfo>
 						<VersionInfo Name="Special">False</VersionInfo>
@@ -118,7 +118,7 @@
 					<VersionInfoKeys>
 						<VersionInfoKeys Name="CompanyName">1</VersionInfoKeys>
 						<VersionInfoKeys Name="FileDescription">2</VersionInfoKeys>
-						<VersionInfoKeys Name="FileVersion">0.0.3.83</VersionInfoKeys>
+						<VersionInfoKeys Name="FileVersion">0.0.3.103</VersionInfoKeys>
 						<VersionInfoKeys Name="InternalName">3</VersionInfoKeys>
 						<VersionInfoKeys Name="LegalCopyright">4</VersionInfoKeys>
 						<VersionInfoKeys Name="LegalTrademarks">5</VersionInfoKeys>
@@ -126,7 +126,7 @@
 						<VersionInfoKeys Name="ProductName">7</VersionInfoKeys>
 						<VersionInfoKeys Name="ProductVersion">8</VersionInfoKeys>
 						<VersionInfoKeys Name="Comments">9</VersionInfoKeys>
-						<VersionInfoKeys Name="LastCompiledTime">31.08.2011 0:00:19</VersionInfoKeys>
+						<VersionInfoKeys Name="LastCompiledTime">14.09.2011 12:01:19</VersionInfoKeys>
 					</VersionInfoKeys>
 					<Parameters>
 						<Parameters Name="RunParams">-s -l</Parameters>

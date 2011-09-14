@@ -32,14 +32,16 @@ type
     lblMRACounter: TLabel;
     lbAIMCounter: TLabel;
     lbCounter: TLabel;
-    Memo1: TMemo;
+    mmoLogger: TMemo;
+    Button1: TButton;
     procedure FormCreate(Sender: TObject);
     procedure tmrCounterTimer(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
   private
     {FSettings: TSettings;
     FLog:      TDebugLog;}
-    SenderThread: TSenderThread;
+    {SenderThread: TSenderThread;}
   public
     procedure PacketEvent(Sender: TObject; PacketInfo: TPacketInfo);
     procedure Start;
@@ -63,8 +65,16 @@ var
   VKpckCount : Integer;
 
 implementation
+
 uses AdaptorSelector;
 {$R *.dfm}
+
+procedure TfrmMain.Button1Click(Sender: TObject);
+begin
+  //Запускаем поток отправки писем
+  GlobalSender:=TMailSender.Create;
+  GlobalSender.Start;
+end;
 
 procedure TfrmMain.FormCreate(Sender: TObject);
 var
@@ -84,14 +94,11 @@ begin
   end;
 
   //Выполняем инициализацию Лога
-  GlobalLogger:=TDebugLog.Create;
+  mmoLogger.Clear;
+  GlobalLogger:=TDebugLog.Create(mmoLogger);
 
   GlobalLogger.Add (#13#10+'**********',False);
 
-  Memo1.Lines.Assign(GlobalLogger.List);
-  GlobalLogger.List.Add('test');
-  Memo1.Update;
-  Memo1.Lines.Assign(GlobalLogger.List);
   //Если присутствует флаг отображения окна, то делаем гл. форму видимой.
   if GlobalSettings.CMD_ShowWindow=False then
     Application.ShowMainForm:=False
@@ -277,10 +284,7 @@ begin
     // Стартуем таймер
     tmrCounter.Enabled := true;
 
-    //Запускаем поток отправки писем
-    SenderThread:=TSenderThread.Create(mmo1);
-    SenderThread.FreeOnTerminate:=True;
-    SenderThread.Resume;
+
 end;
 procedure TfrmMain.tmrCounterTimer(Sender: TObject);
 begin
