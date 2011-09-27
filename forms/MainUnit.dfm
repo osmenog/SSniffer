@@ -106,6 +106,7 @@ object frmMain: TfrmMain
     Height = 118
     Lines.Strings = (
       'Memo1')
+    ScrollBars = ssVertical
     TabOrder = 2
   end
   object Button1: TButton
@@ -115,7 +116,6 @@ object frmMain: TfrmMain
     Height = 25
     Caption = 'Button1'
     TabOrder = 3
-    OnClick = Button1Click
   end
   object tmrCounter: TTimer
     Enabled = False

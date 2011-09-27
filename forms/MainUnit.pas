@@ -37,7 +37,6 @@ type
     procedure FormCreate(Sender: TObject);
     procedure tmrCounterTimer(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure Button1Click(Sender: TObject);
   private
     {FSettings: TSettings;
     FLog:      TDebugLog;}
@@ -69,13 +68,6 @@ implementation
 uses AdaptorSelector;
 {$R *.dfm}
 
-procedure TfrmMain.Button1Click(Sender: TObject);
-begin
-  //Запускаем поток отправки писем
-  GlobalSender:=TMailSender.Create;
-  GlobalSender.Start;
-end;
-
 procedure TfrmMain.FormCreate(Sender: TObject);
 var
   i: integer;
@@ -83,43 +75,35 @@ var
   PathToExe:String;
 begin
   //Выполняем загрузку и инициализацию настроек
-  PathToExe:=ExtractFileDir(ParamStr(0));
+  //PathToExe:=ExtractFileDir(ParamStr(0));
+
+  CheckDublicate; //Проверка на повторный запуск
+
   GlobalSettings:=TSettings.Create;
-  with GlobalSettings do
-  begin
-    //CheckDublicate;
-    ReadCMDParams;
-    LoadFromINI;
-    SaveToINI;
-  end;
+  GlobalSettings.ReadCMDParams;  //Получаем и обрабатываем параметры коммандной строки
 
   //Выполняем инициализацию Лога
   mmoLogger.Clear;
   GlobalLogger:=TDebugLog.Create(mmoLogger);
 
-  GlobalLogger.Add (#13#10+'**********',False);
-
-  //Если присутствует флаг отображения окна, то делаем гл. форму видимой.
-  if GlobalSettings.CMD_ShowWindow=False then
-    Application.ShowMainForm:=False
+  //Если запускаем с командой -show
+  if GlobalSettings.EnableForm then
+    Application.ShowMainForm:=True
   else
-    Application.ShowMainForm:=True;
+    Application.ShowMainForm:=False;
+
+//  GlobalLogger.Add (#13#10+'**********',False);
 
   // Проверяем, загружен ли драйвер PCAP
   if not LoadPacketDll then
   begin
     GlobalLogger.Add('Error: packet.dll is not loaded');
-    if GlobalSettings.CMD_ShowWindow then ShowMessage('packed.dll not found');
     Application.Terminate;
     Exit;
   end;
 
-  //Инициализация
-  MonStarted:= false; // Состояние монитора - отключен
-  MonitorPcap := TMonitorPcap.Create(self); // Создаем "монитор"
-  MonitorPcap.onPacketEvent := PacketEvent; // Задаем обработчик событий
-
   GlobalLogger.Add('WinPCAP loaded. Version: ' + Pcap_GetPacketVersion);
+
 end;
 procedure TfrmMain.FormDestroy(Sender: TObject);
 begin
@@ -224,57 +208,77 @@ var
   AdapterMaskList: TStringList;
   AdapterBcastList: TStringList;
 begin
-    //Проверяем выбран ли адаптер
-    if (GlobalSettings.InterfaceName='0') or (GlobalSettings.CMD_SelectInterface=True) then
+  //Обрабатываем команду -settings
+  if GlobalSettings.ShowSettings then
+  begin
+    if frmAdapterSelect.ShowModal = mrCancel then
     begin
-      if frmAdapterSelect.ShowModal = mrCancel then
-      begin
-        Application.Terminate;
-        Exit;
-      end;
-
-      //Сохраняем настройки
-      GlobalSettings.InterfaceName:=frmAdapterSelect.SelAdapterName;
-      GlobalSettings.InterfaceDesc:=frmAdapterSelect.SelAdapterDesc;
-      PathToExe:=ExtractFileDir(ParamStr(0));
-      GlobalSettings.SaveToINI;
-
-      FreeAndNil(frmAdapterSelect);
-    end;
-
-     // Задаем адаптер, который будем снифать
-     MonitorPcap.MonAdapter:=AnsiString(GlobalSettings.InterfaceName);
-    // Создаем экземпляры списков
-    AdapterIPList:= TStringList.Create;
-    AdapterMaskList:= TStringList.Create;
-    AdapterBcastList:= TStringList.Create;
-
-    // Определяем IP
-    i:=MonitorPcap.GetIPAddresses(MonitorPcap.MonAdapter, AdapterIPList,AdapterMaskList, AdapterBcastList);
-
-    if i > 0 then
-    begin
-      // Выбираем первый IP адрес и Маску в списке.
-      MonitorPcap.Addr := AdapterIPList[0];
-      MonitorPcap.AddrMask := AdapterMaskList[0];
-    end;
-
-    // Задаем атрибуты монитора
-    MonitorPcap.IgnoreData := false;
-    MonitorPcap.IgnoreLAN := false;
-    MonitorPcap.IgnoreNonIP := false;
-    MonitorPcap.Promiscuous := true;
-    MonitorPcap.ClearIgnoreIP;
-    // Запускаемся
-    MonitorPcap.StartMonitor;
-
-    if NOT MonitorPcap.Connected then
-    begin
-      // Если возникла какаято ошибка, то выводим в лог
-      GlobalLogger.Add('Error:'+MonitorPcap.LastError);
+      ShowMessage('Настройки не выполнены.');
       Application.Terminate;
+      Exit;
     end;
 
+    //Сохраняем настройки
+    GlobalSettings.InterfaceName:=frmAdapterSelect.SelAdapterName;
+    GlobalSettings.InterfaceDesc:=frmAdapterSelect.SelAdapterDesc;
+    {Это не все настройки}
+    {Тут желательно реальзовать Assign метод.}
+    GlobalSettings.SaveSettings;
+
+    FreeAndNil(frmAdapterSelect);
+  end;
+
+  //Читаем настройки
+  GlobalSettings.LoadSettings;
+
+  //Проверка на пустые параметры
+  if (GlobalSettings.InterfaceName='0') then
+  begin
+    ShowMessage('Отсутствует параметр InterfaceName');
+    GlobalLogger.Add('Отсутствует параметр InterfaceName');
+    Application.Terminate;
+    Exit;
+  end;
+
+  //Инициализация
+  MonStarted:= false; // Состояние монитора - отключен
+  MonitorPcap := TMonitorPcap.Create(self); // Создаем "монитор"
+  MonitorPcap.onPacketEvent := PacketEvent; // Задаем обработчик событий
+
+  // Задаем адаптер, который будем снифать
+  MonitorPcap.MonAdapter:=AnsiString(GlobalSettings.InterfaceName);
+
+  // Создаем экземпляры списков
+  AdapterIPList:= TStringList.Create;
+  AdapterMaskList:= TStringList.Create;
+  AdapterBcastList:= TStringList.Create;
+
+  // Определяем IP
+  i:=MonitorPcap.GetIPAddresses(MonitorPcap.MonAdapter, AdapterIPList,AdapterMaskList, AdapterBcastList);
+
+  if i > 0 then
+  begin
+    // Выбираем первый IP адрес и Маску в списке.
+    MonitorPcap.Addr := AdapterIPList[0];
+    MonitorPcap.AddrMask := AdapterMaskList[0];
+  end;
+
+  // Задаем атрибуты монитора
+  MonitorPcap.IgnoreData := false;
+  MonitorPcap.IgnoreLAN := false;
+  MonitorPcap.IgnoreNonIP := false;
+  MonitorPcap.Promiscuous := true;
+  MonitorPcap.ClearIgnoreIP;
+  // Запускаемся
+  MonitorPcap.StartMonitor;
+  if NOT MonitorPcap.Connected then
+  begin
+    // Если возникла какаято ошибка, то выводим в лог
+    GlobalLogger.Add('Error:'+MonitorPcap.LastError);
+    Application.Terminate;
+  end
+  else
+  begin
     // Выводим в лог
     GlobalLogger.Add('Capture Started - '+GlobalSettings.InterfaceDesc+' on '+MonitorPcap.Addr);
 
@@ -284,8 +288,25 @@ begin
     // Стартуем таймер
     tmrCounter.Enabled := true;
 
-
+    if GlobalSettings.EnableMailSender then
+    begin
+      //Проверка на пустые параметры
+      if (GlobalSettings.SMTPLogin='') OR
+         (GlobalSettings.SMTPServer='') OR
+         (GlobalSettings.SMTPPassword='') then
+      begin
+         GlobalLogger.Add('Missing MailSender parameters...');
+      end
+      else
+      begin
+        //Запускаем поток отправки писем
+        GlobalSender:=TMailSender.Create;
+        GlobalSender.Start;
+      end;
+    end;
+  end;
 end;
+
 procedure TfrmMain.tmrCounterTimer(Sender: TObject);
 begin
   lbCounter.Caption := inttostr(MonitorPcap.TotRecvPackets + MonitorPcap.TotSendPackets);

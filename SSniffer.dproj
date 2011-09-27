@@ -3,7 +3,7 @@
 			<ProjectGuid>{8EDC1760-DA22-4549-9EAF-710500E0E8C0}</ProjectGuid>
 			<MainSource>SSniffer.dpr</MainSource>
 			<Base>True</Base>
-			<Config Condition="'$(Config)'==''">Debug</Config>
+			<Config Condition="'$(Config)'==''">Release</Config>
 			<Platform>Win32</Platform>
 			<AppType>Application</AppType>
 			<FrameworkType>VCL</FrameworkType>
@@ -106,7 +106,7 @@
 						<VersionInfo Name="MajorVer">0</VersionInfo>
 						<VersionInfo Name="MinorVer">0</VersionInfo>
 						<VersionInfo Name="Release">3</VersionInfo>
-						<VersionInfo Name="Build">103</VersionInfo>
+						<VersionInfo Name="Build">163</VersionInfo>
 						<VersionInfo Name="Debug">True</VersionInfo>
 						<VersionInfo Name="PreRelease">False</VersionInfo>
 						<VersionInfo Name="Special">False</VersionInfo>
@@ -118,7 +118,7 @@
 					<VersionInfoKeys>
 						<VersionInfoKeys Name="CompanyName">1</VersionInfoKeys>
 						<VersionInfoKeys Name="FileDescription">2</VersionInfoKeys>
-						<VersionInfoKeys Name="FileVersion">0.0.3.103</VersionInfoKeys>
+						<VersionInfoKeys Name="FileVersion">0.0.3.163</VersionInfoKeys>
 						<VersionInfoKeys Name="InternalName">3</VersionInfoKeys>
 						<VersionInfoKeys Name="LegalCopyright">4</VersionInfoKeys>
 						<VersionInfoKeys Name="LegalTrademarks">5</VersionInfoKeys>
@@ -126,14 +126,11 @@
 						<VersionInfoKeys Name="ProductName">7</VersionInfoKeys>
 						<VersionInfoKeys Name="ProductVersion">8</VersionInfoKeys>
 						<VersionInfoKeys Name="Comments">9</VersionInfoKeys>
-						<VersionInfoKeys Name="LastCompiledTime">14.09.2011 12:01:19</VersionInfoKeys>
+						<VersionInfoKeys Name="LastCompiledTime">27.09.2011 15:41:25</VersionInfoKeys>
 					</VersionInfoKeys>
-					<Parameters>
-						<Parameters Name="RunParams">-s -l</Parameters>
-					</Parameters>
+					<Parameters/>
 					<Excluded_Packages>
-						<Excluded_Packages Name="$(BDSBIN)\bcboffice2k150.bpl">Embarcadero C++Builder Office 2000 Servers Package</Excluded_Packages>
-						<Excluded_Packages Name="$(BDSBIN)\bcbofficexp150.bpl">Embarcadero C++Builder Office XP Servers Package</Excluded_Packages>
+						<Excluded_Packages Name="$(BDSBIN)\dclDBXDriversEnt150.bpl">Embarcadero Enterprise Driver Components</Excluded_Packages>
 						<Excluded_Packages Name="$(BDSBIN)\dcloffice2k150.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
 						<Excluded_Packages Name="$(BDSBIN)\dclofficexp150.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
 					</Excluded_Packages>
